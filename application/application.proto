@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package application;
+
+// this is probably not close to what we'll
+// end up with, I'm just using it for now for
+// rudimentary testing on PhotonCore
+
+service PhotonService {
+  rpc UpdateCoordinateEdges(CoordinateUpdate) returns (Response);
+  rpc UpdateCoordinates(CoordinateList) returns (Response);
+}
+
+message Response {
+  ResponseCode code = 1;
+}
+
+enum ResponseCode {
+  OK = 0;
+  ERR = 1;
+}
+
+message CoordinateUpdate {
+  Coordinate min = 1;
+  Coordinate max = 2;
+}
+
+message CoordinateList {
+  repeated Coordinate coords = 1;
+}
+
+message Coordinate {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  Color color = 4;
+}
+
+message Color {
+  int32 r = 1;
+  int32 g = 2;
+  int32 b = 3;
+}
