@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package photonflight.application.v1;
+
+option java_package = "org.photonflight.proto.application.v1";
+option java_multiple_files = true;
+option java_outer_classname = "CommonProto";
+
+enum CoreState {
+  CORE_STATE_UNSPECIFIED = 0;
+  CORE_STATE_STARTING = 1;
+  CORE_STATE_READY = 2;
+  CORE_STATE_LOADING_DATASET = 3;
+  CORE_STATE_SHUTTING_DOWN = 4;
+  CORE_STATE_ERROR = 5;
+}
+
+enum OperationState {
+  OPERATION_STATE_UNSPECIFIED = 0;
+  OPERATION_STATE_QUEUED = 1;
+  OPERATION_STATE_RUNNING = 2;
+  OPERATION_STATE_SUCCEEDED = 3;
+  OPERATION_STATE_FAILED = 4;
+  OPERATION_STATE_CANCELLED = 5;
+}
+
+message Coordinate3d {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+message Bounds3d {
+  Coordinate3d minimum = 1;
+  Coordinate3d maximum = 2;
+}
+
+message PointAttributes {
+  bool has_rgb = 1;
+  bool has_intensity = 2;
+  bool has_classification = 3;
+}
+
+message Dataset {
+  string id = 1;
+  uint64 revision = 2;
+  string display_name = 3;
+  uint64 point_count = 4;
+
+  // Streamed float positions are offsets from this origin.
+  // World coordinates are origin + position.
+  Coordinate3d origin = 5;
+  Bounds3d bounds = 6;
+  PointAttributes attributes = 7;
+}
+
+message Operation {
+  string id = 1;
+  OperationState state = 2;
+
+  // Progress within the bounds [0, 1]
+  float progress = 3;
+  string message = 4;
+  OperationError error = 5;
+}
+
+message OperationError {
+  string code = 1;
+  string message = 2;
+}
+
+message Annotation {
+  string id = 1;
+  string dataset_id = 2;
+  Coordinate3d position = 3;
+  string text = 4;
+}
+
+message Plugin {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+  bool enabled = 4;
+}

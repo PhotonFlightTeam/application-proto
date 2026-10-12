@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package photonflight.application.v1;
+
+option java_package = "org.photonflight.proto.application.v1";
+option java_multiple_files = true;
+option java_outer_classname = "CommandsProto";
+
+import "application/common.proto";
+
+// Commands are typed rather than carrying JSON so both generated clients can
+// validate the contract. request_id supports logging and future deduplication.
+message Command {
+  string request_id = 1;
+
+  oneof payload {
+    AddAnnotationCommand add_annotation = 10;
+    RemoveAnnotationCommand remove_annotation = 11;
+    SetPluginEnabledCommand set_plugin_enabled = 12;
+  }
+}
+
+message CommandResult {
+  string request_id = 1;
+
+  // Revision after a dataset-changing command. Zero means the command did not
+  // change a dataset.
+  uint64 resulting_revision = 2;
+
+  oneof payload {
+    AddAnnotationResult add_annotation = 10;
+    RemoveAnnotationResult remove_annotation = 11;
+    SetPluginEnabledResult set_plugin_enabled = 12;
+  }
+}
+
+message AddAnnotationCommand {
+  string dataset_id = 1;
+  uint64 expected_revision = 2;
+  Coordinate3d position = 3;
+  string text = 4;
+}
+
+message AddAnnotationResult {
+  Annotation annotation = 1;
+}
+
+message RemoveAnnotationCommand {
+  string dataset_id = 1;
+  uint64 expected_revision = 2;
+  string annotation_id = 3;
+}
+
+message RemoveAnnotationResult {
+  string annotation_id = 1;
+}
+
+message SetPluginEnabledCommand {
+  string plugin_id = 1;
+  bool enabled = 2;
+}
+
+message SetPluginEnabledResult {
+  Plugin plugin = 1;
+  bool restart_required = 2;
+}

@@ -1,43 +1,107 @@
 syntax = "proto3";
 
-package application;
+package photonflight.application.v1;
 
-// this is probably not close to what we'll
-// end up with, I'm just using it for now for
-// rudimentary testing on PhotonCore
+option java_package = "org.photonflight.proto.application.v1";
+option java_multiple_files = true;
+option java_outer_classname = "ApplicationProto";
 
-service PhotonService {
-  rpc UpdateCoordinateEdges(CoordinateUpdate) returns (Response);
-  rpc UpdateCoordinates(CoordinateList) returns (Response);
+import "application/commands.proto";
+import "application/common.proto";
+import "application/events.proto";
+
+// Control calls between Electron and PhotonCore
+service CoreControlService {
+  rpc GetStatus(GetStatusRequest) returns (CoreStatus);
+  rpc LoadDataset(LoadDatasetRequest) returns (LoadDatasetResponse);
+  rpc UnloadDataset(UnloadDatasetRequest) returns (UnloadDatasetResponse);
+  rpc ExecuteCommand(Command) returns (CommandResult);
+  rpc SubscribeEvents(SubscribeEventsRequest) returns (stream Event);
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
 }
 
-message Response {
-  ResponseCode code = 1;
+// Point cloud specific operations
+service PointCloudService {
+  rpc GetDataset(GetDatasetRequest) returns (Dataset);
+  rpc StreamPoints(StreamPointsRequest) returns (stream PointBatch);
 }
 
-enum ResponseCode {
-  OK = 0;
-  ERR = 1;
+message GetStatusRequest {}
+
+message CoreStatus {
+  string core_instance_id = 1;
+  string api_version = 2;
+  string core_version = 3;
+  CoreState state = 4;
+  uint64 uptime_ms = 5;
+  Dataset active_dataset = 6;
 }
 
-message CoordinateUpdate {
-  Coordinate min = 1;
-  Coordinate max = 2;
+message LoadDatasetRequest {
+  string path = 1;
 }
 
-message CoordinateList {
-  repeated Coordinate coords = 1;
+// Since loading is async, completion and progress should be published as Events
+message LoadDatasetResponse {
+  Operation operation = 1;
 }
 
-message Coordinate {
-  double x = 1;
-  double y = 2;
-  double z = 3;
-  Color color = 4;
+message UnloadDatasetRequest {
+  string dataset_id = 1;
 }
 
-message Color {
-  int32 r = 1;
-  int32 g = 2;
-  int32 b = 3;
+message UnloadDatasetResponse {
+  Operation operation = 1;
+}
+
+message SubscribeEventsRequest {
+  // When true, the first event is a snapshot of current Core state.
+  bool include_snapshot = 1;
+}
+
+message ShutdownRequest {
+  // Time PhotonCore may spend finishing work before it shuts down.
+  // Zero should let PhotonCore choose its own default for this.
+  uint32 grace_period_ms = 1;
+}
+
+message ShutdownResponse {
+  bool accepted = 1;
+}
+
+message GetDatasetRequest {
+  string dataset_id = 1;
+}
+
+message StreamPointsRequest {
+  string dataset_id = 1;
+
+  // The request fails with FAILED_PRECONDITION if this is not the current
+  // revision. This prevents Electron from displaying a mixed revision.
+  uint64 revision = 2;
+
+  // A hint only. PhotonCore may select a smaller safe batch size.
+  // Zero lets PhotonCore choose its default.
+  uint32 preferred_batch_points = 3;
+}
+
+message PointBatch {
+  string dataset_id = 1;
+  uint64 revision = 2;
+  uint64 point_offset = 3;
+  uint32 point_count = 4;
+
+  // Point coordinates are offsets from Dataset.origin. Values are interleaved
+  // xyz, IEEE-754 binary32, little-endian. Length must equal
+  // point_count * 3 * 4 bytes.
+  bytes positions_f32_le = 5;
+
+  // RGB bytes. Empty when RGB is unavailable, otherwise length
+  // must equal point_count * 3 bytes.
+  bytes colors_rgb_u8 = 6;
+
+  // Optional point attributes. Empty means unavailable. When present, lengths
+  // must be point_count * 2 and point_count bytes respectively.
+  bytes intensities_u16_le = 7;
+  bytes classifications_u8 = 8;
 }

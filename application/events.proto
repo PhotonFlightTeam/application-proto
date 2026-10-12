@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package photonflight.application.v1;
+
+option java_package = "org.photonflight.proto.application.v1";
+option java_multiple_files = true;
+option java_outer_classname = "EventsProto";
+
+import "application/common.proto";
+
+message Event {
+  // Metadata
+  int64 timestamp_ms = 3;
+
+  // Data
+  oneof payload {
+    CoreSnapshot core_snapshot = 10;
+    CoreStateChanged core_state_changed = 11;
+    OperationProgress operation_progress = 12;
+    DatasetLoaded dataset_loaded = 13;
+    DatasetUnloaded dataset_unloaded = 14;
+    DatasetChanged dataset_changed = 15;
+    PluginStateChanged plugin_state_changed = 16;
+  }
+}
+
+message CoreSnapshot {
+  CoreState state = 1;
+  Dataset active_dataset = 2;
+  repeated Plugin plugins = 3;
+}
+
+message CoreStateChanged {
+  CoreState state = 1;
+  string message = 2;
+}
+
+message OperationProgress {
+  Operation operation = 1;
+}
+
+message DatasetLoaded {
+  string operation_id = 1;
+  Dataset dataset = 2;
+}
+
+message DatasetUnloaded {
+  string operation_id = 1;
+  string dataset_id = 2;
+}
+
+message DatasetChanged {
+  string dataset_id = 1;
+  uint64 revision = 2;
+}
+
+message PluginStateChanged {
+  Plugin plugin = 1;
+  bool restart_required = 2;
+}
