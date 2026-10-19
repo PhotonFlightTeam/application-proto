@@ -23,6 +23,6 @@ to initialize this as a submodule into a project.
 Use:
 ```text
 git pull
-git submodule update --init --recursive
+git submodule update --remote --merge --recursive
 ```
 To update the submodule.
