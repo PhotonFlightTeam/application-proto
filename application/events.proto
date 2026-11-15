@@ -28,6 +28,7 @@ message CoreSnapshot {
   CoreState state = 1;
   Dataset active_dataset = 2;
   repeated Plugin plugins = 3;
+  repeated Operation operations = 4;
 }
 
 message CoreStateChanged {

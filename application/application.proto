@@ -13,6 +13,7 @@ import "application/events.proto";
 // Control calls between Electron and PhotonCore
 service CoreControlService {
   rpc GetStatus(GetStatusRequest) returns (CoreStatus);
+  rpc GetOperation(GetOperationRequest) returns (Operation);
   rpc LoadDataset(LoadDatasetRequest) returns (LoadDatasetResponse);
   rpc UnloadDataset(UnloadDatasetRequest) returns (UnloadDatasetResponse);
   rpc ExecuteCommand(Command) returns (CommandResult);
@@ -23,10 +24,14 @@ service CoreControlService {
 // Point cloud specific operations
 service PointCloudService {
   rpc GetDataset(GetDatasetRequest) returns (Dataset);
+  rpc GetAnnotations(GetAnnotationsRequest) returns (GetAnnotationsResponse);
   rpc StreamPoints(StreamPointsRequest) returns (stream PointBatch);
 }
 
 message GetStatusRequest {}
+
+// History is bounded to the most recent 256 operations per Core instance.
+message GetOperationRequest { string operation_id = 1; }
 
 message CoreStatus {
   string core_instance_id = 1;
@@ -77,7 +82,8 @@ message StreamPointsRequest {
   string dataset_id = 1;
 
   // The request fails with FAILED_PRECONDITION if this is not the current
-  // revision. This prevents Electron from displaying a mixed revision.
+  // revision. Active streams also fail if the dataset is unloaded, replaced,
+  // or its revision changes (including annotation edits).
   uint64 revision = 2;
 
   // A hint only. PhotonCore may select a smaller safe batch size.
@@ -96,7 +102,8 @@ message PointBatch {
   // point_count * 3 * 4 bytes.
   bytes positions_f32_le = 5;
 
-  // RGB bytes. Empty when RGB is unavailable, otherwise length
+  // RGB bytes, produced by rounding LAS uint16 channels to [0,255].
+  // Empty when RGB is unavailable, otherwise length
   // must equal point_count * 3 bytes.
   bytes colors_rgb_u8 = 6;
 
@@ -104,4 +111,21 @@ message PointBatch {
   // must be point_count * 2 and point_count bytes respectively.
   bytes intensities_u16_le = 7;
   bytes classifications_u8 = 8;
+}
+
+// Page through one revision. A stale revision fails with FAILED_PRECONDITION.
+message GetAnnotationsRequest {
+  string dataset_id = 1;
+  uint64 revision = 2;
+  uint32 offset = 3;
+  // Default 128, maximum 256
+  uint32 page_size = 4;
+}
+
+message GetAnnotationsResponse {
+  string dataset_id = 1;
+  uint64 revision = 2;
+  repeated Annotation annotations = 3;
+  uint32 next_offset = 4;
+  bool has_more = 5;
 }

@@ -81,4 +81,6 @@ message Plugin {
   string name = 2;
   string version = 3;
   bool enabled = 4;
+  // Whether this plugin's module was loaded into the running JVM.
+  bool active = 5;
 }
